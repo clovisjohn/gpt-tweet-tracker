@@ -20,7 +20,7 @@ openai.api_key = OPENAI_API_KEY
 async def check_tweet_for_match(tweet, question):
     # Use OpenAI API to check tweet for match with question
     response = openai.Completion.create(
-        engine="text-davinci-002",
+        engine="text-davinci-003",
         prompt=f"{question}\n{tweet}",
         max_tokens=2048,
         temperature=0.5,
@@ -36,11 +36,11 @@ async def check_tweet_for_match(tweet, question):
 class UserLimitReached(Exception):
     ...
     pass
-
+    
 
 class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
     def __init__(self, channel, cursor,**kwargs):
-        super().__init__(TWITTER_BEARER_TOKEN, **kwargs)
+        super().__init__(bearer_token=TWITTER_BEARER_TOKEN,wait_on_rate_limit=True, **kwargs)
         self.channel = channel
         self.cursor = cursor
     
@@ -48,7 +48,13 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         await self.delete_rules(rules)
         await self.add_rules(rules)
         
-        
+    
+    def custom_filter(self):
+        self.disconnect()
+        self.task=None
+        self.filter(expansions=["author_id"],user_fields=["username", "name",'profile_image_url'],)
+
+
     async def update_handles_from_database(self):
 
         # delete existing rules
@@ -95,20 +101,24 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         if rules is None or len(rules) == 0:
             temp_rule =  tweepy.StreamRule(f'from:{handle}')
             await self.add_rules(temp_rule)
+            print((await self.get_rules()).data)
             return None
 
         for rule in rules:
             #check if there is room to add a new handle
             if len(rule.value) + len(handle) < 510:
                 new_query = rule.value + f' OR from:{handle}'
-                new_rule = tweepy.StreamRule(new_query)
+                new_rule = tweepy.StreamRule(value=new_query,id=rule.id)
                 await self.update_rules(new_rule)
+                print((await self.get_rules()).data)
                 return None
                
         #if there is no room to add a new handle, check if there is room to add a new rule
         if len(rules) < 5:
                 temp_rule =  tweepy.StreamRule(f'from:{handle}')
                 await self.add_rules(temp_rule)
+                print((await self.get_rules()).data)
+                return None
                 
         #else, raise UserLimitReached
         print((await self.get_rules()).data)
@@ -125,7 +135,8 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
                 await self.delete_rules(rule)
                 new_query = rule.value.replace(f'from:{handle} OR ','')
                 new_query = new_query.replace(f'from:{handle}','')
-                new_rule = tweepy.StreamRule(new_query)
+                new_query = new_query.rstrip(' OR ')
+                new_rule = tweepy.StreamRule(value=new_query,id=rule.id)
                 print(await self.add_rules(new_rule))
                 print((await self.get_rules()).data)
                 return;
@@ -134,17 +145,35 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
 
     
    
-    async def on_tweet(self, status):
+    async def on_response(self, response):
+        tweet = response.data
+        user = response.includes['users'][0]
+        username = user.username
+        
         # Get question for tweet author from database
-        self.cursor.execute('''SELECT question FROM users WHERE handle=?''', (status.author.screen_name,))
+        self.cursor.execute('''SELECT question FROM users WHERE handle=?''', (username,))
         question = self.cursor.fetchone()[0]
 
-        # Check tweet for match with question using OpenAI API
-        match = await check_tweet_for_match(status.text, question)
+        match = await check_tweet_for_match(tweet.text, question)
+
+        print(f"{tweet.text} {question} {str(match[0])} {match[1]}")   
 
         if match[0]:
+        
             # If tweet matches question, send tweet in Discord channel
-            await self.channel.send(status.text+match[1])
+            
+            # create dsicord embed of the tweet
+            embed = discord.Embed(title=f"{user.name} (@{user.username})", url=f"https://twitter.com/{user.username}/status/{tweet.id}", description=tweet.text, color=0x1DA1F2)
+            embed.set_author(name="Tweet Match", url="https://twitter.com", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
+            embed.set_thumbnail(url=user.profile_image_url)
+            embed.add_field(name="Question", value=question, inline=False)
+            embed.add_field(name="Answer", value=match[1], inline=False)
+            embed.add_field(name="Match", value=match[0], inline=False)
+            
+            embed.set_footer(text="Tweet Match", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
+            
+            await self.channel.send(embed=embed)
+
 
     async def on_connect(self):
         print("Connection to Twitter successful!")

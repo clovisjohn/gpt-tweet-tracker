@@ -12,7 +12,7 @@ from utils import *
 DISCORD_BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN")
 
 # Get the Discord Channel ID from the environment variables
-DISCORD_CHANNEL_ID = os.environ.get("DISCORD_CHANNEL_ID")
+DISCORD_CHANNEL_ID = int(os.environ.get("DISCORD_CHANNEL_ID"))
 
 # Connect to the Discord API using discord.py
 
@@ -22,7 +22,8 @@ intents.typing = False
 intents.presences = False
 
 client = commands.Bot(command_prefix='!',intents=intents)
-channel = client.get_channel(DISCORD_CHANNEL_ID)
+channel = None
+
 
 # Connect to the SQLite database
 cnx = sqlite3.connect('gpt_tweet_tracker.db')
@@ -45,8 +46,9 @@ async def load_database():
     if count > 0:
         try:
             await stream.update_handles_from_database()
+            stream.custom_filter()
         except UserLimitReached:
-            await ctx.send("Users limit reached")
+            await channel.send("Users limit reached")
 
 # Set up command handling
 @client.command()
@@ -59,6 +61,7 @@ async def add_user(ctx, handle: str, question: str):
     
     try:
         await stream.add_handle(handle)
+        stream.custom_filter()
         cursor.execute("INSERT INTO users VALUES (?, ?)", (handle, question))
         cnx.commit()
         await ctx.send(f"Tracking {handle} for question: {question}")
@@ -75,6 +78,7 @@ async def remove_user(ctx, handle: str):
         return
     
     await stream.remove_handle(handle)
+    stream.custom_filter()
     cursor.execute("DELETE FROM users WHERE handle = ?", (handle,))
     cnx.commit()
     await ctx.send(f"Stopped tracking {handle}")
@@ -102,7 +106,8 @@ async def start(ctx):
     stream = MyStreamListener(channel,cursor)
     await load_database()
     
-
+    
+@client.command()
 async def stop(ctx):
     # Stop the bot
     await ctx.send('Stopping bot')
@@ -112,7 +117,9 @@ async def stop(ctx):
 @client.event
 async def on_ready():
     global stream
+    global channel
     print(f'{client.user} has connected to Discord!')
+    channel = client.get_channel(DISCORD_CHANNEL_ID)
     if stream is None:
         stream = MyStreamListener(channel,cursor)
         await load_database()
