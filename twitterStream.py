@@ -1,21 +1,20 @@
-import os
-import discord
 import openai
-import dotenv
 import tweepy
 import tweepy.asynchronous
+import datetime
+import discord
+from globals_ import *
 
-# Load environment variables from a .env file
-dotenv.load_dotenv()
 
-# Get the Twitter Bearer Token from the environment variables
-TWITTER_BEARER_TOKEN = os.environ.get("TWITTER_BEARER_TOKEN")
+def create_error_embed(self,excep):
+    embed = discord.Embed(title="Error", description="An error occurred. Please try again.", color=0xFF0000)
+    embed.set_author(name="Tweet Match", url="https://twitter.com", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
+    embed.add_field(name="Type", value=type(excep).__name__, inline=False)
+    embed.add_field(name="Message", value=str(excep), inline=False)
+    embed = discord.Embed(timestamp=datetime.datetime.now())
+    embed.set_footer(text="Tweet Match", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
+    return embed
 
-# Get the OpenAI API key from the environment variables
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-
-# Set up connection to OpenAI API
-openai.api_key = OPENAI_API_KEY
 
 async def check_tweet_for_match(tweet, question):
     # Use OpenAI API to check tweet for match with question
@@ -33,9 +32,7 @@ async def check_tweet_for_match(tweet, question):
     answer = response['choices'][0]['text'].strip().lower()
     return ["yes" in answer, answer]
 
-class UserLimitReached(Exception):
-    ...
-    pass
+
     
 
 class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
@@ -161,7 +158,7 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         if match[0]:
         
             # If tweet matches question, send tweet in Discord channel
-            
+            await self.channel.send("New tweet")
             # create dsicord embed of the tweet
             embed = discord.Embed(title=f"{user.name} (@{user.username})", url=f"https://twitter.com/{user.username}/status/{tweet.id}", description=tweet.text, color=0x1DA1F2)
             embed.set_author(name="Tweet Match", url="https://twitter.com", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
@@ -169,7 +166,7 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
             embed.add_field(name="Question", value=question, inline=False)
             embed.add_field(name="Answer", value=match[1], inline=False)
             embed.add_field(name="Match", value=match[0], inline=False)
-            
+            embed = discord.Embed(timestamp=tweet.created_at)
             embed.set_footer(text="Tweet Match", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
             
             await self.channel.send(embed=embed)
