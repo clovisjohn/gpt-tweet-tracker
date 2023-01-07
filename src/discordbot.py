@@ -33,7 +33,7 @@ def process_handles(handle: str) -> Tuple[str, int]:
 
     user = TWITTER_CLIENT.get_user(username=handle)
 
-    if user is None:
+    if user.data is None:
         raise InvalidHandle
 
     if handle_exist(user.data.id):
@@ -99,6 +99,7 @@ class Tracker(commands.Cog):
     @commands.hybrid_command(description="Add a new user to the database")
     async def add_user(self, ctx, handle: str, question: str):
 
+        await ctx.defer()
         handle, user_id = process_handles(handle)
 
         await self.bot.stream.add_handle(handle)
@@ -115,6 +116,7 @@ class Tracker(commands.Cog):
     @commands.hybrid_command(description="Remove a user from the database.")
     async def remove_user(self, ctx, handle):
 
+        await ctx.defer()
         try:
             handle, user_id = process_handles(handle)
 
