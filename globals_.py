@@ -1,4 +1,6 @@
 from discord.ext import commands
+import discord
+import datetime
 import openai
 import tweepy.asynchronous
 import sqlite3
@@ -26,15 +28,36 @@ DISCORD_CHANNEL_ID = int(os.environ.get("DISCORD_CHANNEL_ID"))
 # Connect to the SQLite database
 cnx = sqlite3.connect('gpt_tweet_tracker.db')
 CURSOR = cnx.cursor()
-CURSOR.execute("CREATE TABLE IF NOT EXISTS users (handle TEXT, question TEXT)")
+
+#create table containing twitter user id and string of twitter handles
+CURSOR.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, handle TEXT, question TEXT )''')
+
+TWITTER_CLIENT = tweepy.Client(bearer_token=TWITTER_BEARER_TOKEN)
+
 
 TWITTER_HANDLE_REGEX = r"^[a-zA-Z0-9_]{1,15}$"
+
+
 
 class UserLimitReached(Exception):
     ...
     pass
 
-def create_error_embed(self,excep):
+class HandleProcessingException(Exception):
+    ...
+    pass
+
+class InvalidHandle(HandleProcessingException):
+    ...
+    pass
+
+class HandleAlreadyExist(HandleProcessingException):
+    def __init__(self, handle,user_id):
+        self.handle = handle
+        self.user_id = user_id
+
+
+def create_error_embed(excep):
     embed = discord.Embed(title="Error", description="An error occurred. Please try again.", color=0xFF0000)
     embed.set_author(name="Tweet Match", url="https://twitter.com", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
     embed.add_field(name="Type", value=type(excep).__name__, inline=False)
@@ -43,8 +66,8 @@ def create_error_embed(self,excep):
     embed.set_footer(text="Tweet Match", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
     return embed
 
-async def handle_exist(handle):
+def handle_exist(userID):
     # Check if handle exists in the database
-    CURSOR.execute("SELECT COUNT(*) FROM users WHERE handle = ?", (handle,))
+    CURSOR.execute("SELECT COUNT(*) FROM users WHERE id = ?", (userID,))
     count = CURSOR.fetchone()[0]
     return count > 0

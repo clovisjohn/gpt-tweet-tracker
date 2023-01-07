@@ -11,10 +11,31 @@ intents.message_content = True
 intents.typing = False
 intents.presences = False
 
+def process_handles(handle):
+    # convert to lowercase, check if valid handle, get user id from handle, check if ID already exist in databse. raise custom error for each check. return handle and user id
+    handle = to_lower(handle)
+    if not re.match(TWITTER_HANDLE_REGEX, handle):
+        raise InvalidHandle
+    
+    user = TWITTER_CLIENT.get_user(username=handle)
+    
+    
+    if user is None:
+        raise InvalidHandle
+    
+
+    # check if ID already exist in databse. database is indexed by user id and contains users id and text
+    print(user.data.id)
+    if handle_exist(user.data.id):
+        raise HandleAlreadyExist(handle,user.data.id)
+    
+    return handle, user.data.id
+    
+
 def create_start_message():
     embed = discord.Embed(title='Hello World!', description='The bot is now online and ready to serve you.', color=0x0000ff)
     embed.set_thumbnail(url='https://i.imgur.com/GyWdKAx.jpg')
-    embed.add_field(name='Commands', value='!help - Shows a list of available commands', inline=False)
+    embed.add_field(name='Commands', value='!help or /help - Shows a list of available commands', inline=False)
     return embed
 
 def to_lower(string):
@@ -38,21 +59,25 @@ class Tracker(commands.Cog):
         self.bot = bot
         
     @commands.hybrid_command()
-    async def add_user(self,ctx, handle: to_lower, question: str):
-    
-        if not re.match(TWITTER_HANDLE_REGEX, handle):
+    async def add_user(self,ctx, handle: str, question: str):
+        
+        try:
+            handle, user_id = process_handles(handle)
+        
+        except InvalidHandle:
             await ctx.send("Invalid handle")
             return;
         
-        # Check if handle already exists in the database
-        if await handle_exist(handle):
+        except HandleAlreadyExist:
             await ctx.send('Handle already exists in database')
-            return
+            return  
     
         try:
             await self.bot.stream.add_handle(handle)
             self.bot.stream.custom_filter()
-            CURSOR.execute("INSERT INTO users VALUES (?, ?)", (handle, question))
+            
+            # Add handle to the database
+            CURSOR.execute("INSERT INTO users (id, handle, question) VALUES (?, ?, ?)", (user_id, handle, question))
             cnx.commit()
             await ctx.send(f"Tracking {handle} for question: {question}")
         except UserLimitReached :
@@ -62,20 +87,25 @@ class Tracker(commands.Cog):
     @commands.hybrid_command()
     async def remove_user(self,ctx, handle: to_lower):
         
-        if not re.match(TWITTER_HANDLE_REGEX, handle):
-            await ctx.send("Invalid handle")
-            return
+        try:
+            handle, user_id = process_handles(handle)
         
-        # Check if handle already exists in the database
-        if not (await handle_exist(handle)):
+        except InvalidHandle:
+            await ctx.send("Invalid handle")
+            return;
+        
+        except HandleAlreadyExist as e:
+            handle,user_id = e.handle,e.user_id
+            await self.bot.stream.remove_handle(handle)
+            self.bot.stream.custom_filter()
+            # Remove handle from the database
+            CURSOR.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            cnx.commit()
+            await ctx.send(f"Stopped tracking {handle}")
+            
+        else:
             await ctx.send(f"User is not currently tracked")
             return
-    
-        await self.bot.stream.remove_handle(handle)
-        self.bot.stream.custom_filter()
-        CURSOR.execute("DELETE FROM users WHERE handle = ?", (handle,))
-        cnx.commit()
-        await ctx.send(f"Stopped tracking {handle}")
 
 
     @commands.hybrid_command()
@@ -84,13 +114,18 @@ class Tracker(commands.Cog):
         users = CURSOR.fetchall()
         await ctx.send(f"Currently tracking {len(users)} users")
         
+        if len(users)==0:
+            return
+        
         # Print list of handles and questions in Discord channel
         msg=""
         for user in users:
-            handle = user[0]
-            question = user[1]
+            handle = user[1]
+            question = user[2]
             msg += f"{handle}: {question}\n"
+
         await ctx.send(msg)
+
 
     @commands.hybrid_command()
     async def start(self,ctx):

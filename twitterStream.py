@@ -7,11 +7,16 @@ import traceback
 from globals_ import *
 
 
-async def check_tweet_for_match(tweet, question):
+async def check_tweet_for_match(tweet_text, question):
+    
+    
+    # merge question and tweet text to make a prompt asking a question about the tweet
+    query = f"{question} \n\nTweet : {tweet_text} \n\nAnswer:"
+      
     # Use OpenAI API to check tweet for match with question
     response = openai.Completion.create(
         engine="text-davinci-003",
-        prompt=f"{question}\n{tweet}",
+        prompt=query,
         max_tokens=2048,
         temperature=0.5,
         top_p=1,
@@ -51,8 +56,8 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         if rules is not None:
             await self.delete_rules(rules)
         
-        # add new rules to track tweets from users in database 
-        self.cursor.execute('''SELECT handle FROM users''')
+        # get handles from database
+        self.cursor.execute("SELECT handle FROM users")
         handles = self.cursor.fetchall()
         
         #merge handles into twitter search query to track users corresponding to handles of 512 characters maximum and add these strings to a list.
@@ -137,9 +142,12 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         tweet = response.data
         user = response.includes['users'][0]
         username = user.username
+        user_id = user.id
+
+        print(response)
         
         # Get question for tweet author from database
-        self.cursor.execute('''SELECT question FROM users WHERE handle=?''', (username,))
+        self.cursor.execute('''SELECT question FROM users WHERE id=?''', (user_id,))
         question = self.cursor.fetchone()[0]
 
         match = await check_tweet_for_match(tweet.text, question)
@@ -151,16 +159,15 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
             # If tweet matches question, send tweet in Discord channel
             await self.channel.send("New tweet")
             # create dsicord embed of the tweet
-            embed = discord.Embed(title=f"{user.name} (@{user.username})", url=f"https://twitter.com/{user.username}/status/{tweet.id}", description=tweet.text, color=0x1DA1F2)
-            embed.set_author(name="Tweet Match", url="https://twitter.com", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
-            embed.set_thumbnail(url=user.profile_image_url)
-            embed.add_field(name="Question", value=question, inline=False)
-            embed.add_field(name="Answer", value=match[1], inline=False)
-            embed.add_field(name="Match", value=match[0], inline=False)
-            embed = discord.Embed(timestamp=tweet.created_at)
-            embed.set_footer(text="Tweet Match", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
-            
-            await self.channel.send(embed=embed)
+            embed1 = discord.Embed(title=f"{user.name} (@{user.username})", url=f"https://twitter.com/{user.username}/status/{tweet.id}", description=tweet.text, color=0x1DA1F2, timestamp=tweet.created_at)
+            embed1.set_author(name="Tweet Match", url="https://twitter.com", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
+            embed1.set_thumbnail(url=user.profile_image_url)
+            embed1.add_field(name="Question", value=question, inline=False)
+            embed1.add_field(name="Answer", value=match[1], inline=False)
+            embed1.add_field(name="Match", value=match[0], inline=False)
+            embed1.timestamp=tweet.created_at
+            embed1.set_footer(text="Tweet Match", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
+            await self.channel.send(embed=embed1)
 
 
     async def on_connect(self):
@@ -177,4 +184,4 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         
     async def on_exception(self, exception):
         print(''.join(traceback.format_exception(type(exception), value=exception, tb=exception.__traceback__)))
-        self.channel.send(embed=create_error_embed(exception))
+        await self.channel.send(embed=create_error_embed(exception))
