@@ -159,15 +159,15 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
             # If tweet matches question, send tweet in Discord channel
             await self.channel.send("New tweet")
             # create dsicord embed of the tweet
-            embed1 = discord.Embed(title=f"{user.name} (@{user.username})", url=f"https://twitter.com/{user.username}/status/{tweet.id}", description=tweet.text, color=0x1DA1F2, timestamp=tweet.created_at)
-            embed1.set_author(name="Tweet Match", url="https://twitter.com", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
-            embed1.set_thumbnail(url=user.profile_image_url)
-            embed1.add_field(name="Question", value=question, inline=False)
-            embed1.add_field(name="Answer", value=match[1], inline=False)
-            embed1.add_field(name="Match", value=match[0], inline=False)
-            embed1.timestamp=tweet.created_at
-            embed1.set_footer(text="Tweet Match", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
-            await self.channel.send(embed=embed1)
+            embed = discord.Embed(title=f"{user.name} (@{user.username})", url=f"https://twitter.com/{user.username}/status/{tweet.id}", description=tweet.text, color=0x1DA1F2, timestamp=tweet.created_at)
+            embed.set_author(name="Tweet Match", url="https://twitter.com", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
+            embed.set_thumbnail(url=user.profile_image_url)
+            embed.add_field(name="Question", value=question, inline=False)
+            embed.add_field(name="Answer", value=match[1], inline=False)
+            embed.add_field(name="Match", value=match[0], inline=False)
+            embed.timestamp=tweet.created_at
+            embed.set_footer(text="Tweet Match", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
+            await self.channel.send(embed=embed)
 
 
     async def on_connect(self):

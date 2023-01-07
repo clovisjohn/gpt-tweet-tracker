@@ -61,27 +61,16 @@ class Tracker(commands.Cog):
     @commands.hybrid_command(description = "Add a new user to the database")
     async def add_user(self,ctx, handle: str, question: str):
         
-        try:
-            handle, user_id = process_handles(handle)
 
-        except InvalidHandle:
-            await ctx.send("Invalid handle")
-            return;
-        
-        except HandleAlreadyExist:
-            await ctx.send('Handle already exists in database')
-            return  
+        handle, user_id = process_handles(handle)
     
-        try:
-            await self.bot.stream.add_handle(handle)
-            self.bot.stream.custom_filter()
+        await self.bot.stream.add_handle(handle)
+        self.bot.stream.custom_filter()
             
-            # Add handle to the database
-            CURSOR.execute("INSERT INTO users (id, handle, question) VALUES (?, ?, ?)", (user_id, handle, question))
-            cnx.commit()
-            await ctx.send(f"Tracking {handle} for question: {question}")
-        except UserLimitReached :
-            await ctx.send("Users limit reached")
+        # Add handle to the database
+        CURSOR.execute("INSERT INTO users (id, handle, question) VALUES (?, ?, ?)", (user_id, handle, question))
+        cnx.commit()
+        await ctx.send(f"Tracking {handle} for question: {question}")
     
         
     @commands.hybrid_command(description = "Remove a user from the database.")
@@ -89,10 +78,6 @@ class Tracker(commands.Cog):
         
         try:
             handle, user_id = process_handles(handle)
-        
-        except InvalidHandle:
-            await ctx.send("Invalid handle")
-            return;
         
         except HandleAlreadyExist as e:
             handle,user_id = e.handle,e.user_id
@@ -102,10 +87,9 @@ class Tracker(commands.Cog):
             CURSOR.execute("DELETE FROM users WHERE id = ?", (user_id,))
             cnx.commit()
             await ctx.send(f"Stopped tracking {handle}")
-            
+
         else:
-            await ctx.send(f"User is not currently tracked")
-            return
+            raise UserNotTracked
     
    
     @commands.hybrid_command(description = "Lists all the users being tracked and their respective questions ")
@@ -140,7 +124,17 @@ class Tracker(commands.Cog):
         # Stop the bot
         await ctx.send('Stopping bot')
         self.bot.stream.disconnect()
+        
+    @commands.hybrid_command(name="help", description="Show help for the bot")
+    async def help(self,ctx):
+        # Print list of commands in Discord channel
+        embed = discord.Embed(title='Commands', description='List of available commands', color=0x0000ff)
+        embed.set_thumbnail(url='https://i.imgur.com/GyWdKAx.jpg')
+        for command in self.bot.commands:
+            embed.add_field(name=f'!{command.name} - ', value=f'{command.description}', inline=False)
 
+        
+        await ctx.send(embed=embed)
 
 
 
@@ -157,10 +151,9 @@ class Tracker(commands.Cog):
 
 class DiscordBot(commands.Bot):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs, help_command = None)
         self.channel = None
         self.stream = None
-
         
         
     async def setup_hook(self):
@@ -189,5 +182,8 @@ class DiscordBot(commands.Bot):
         print(exception)
         await self.channel.send(embed=create_error_embed(ctx.message.content, exception))
 
+        
 
+
+        
         

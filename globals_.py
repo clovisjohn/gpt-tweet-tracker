@@ -37,24 +37,27 @@ TWITTER_CLIENT = tweepy.Client(bearer_token=TWITTER_BEARER_TOKEN)
 
 TWITTER_HANDLE_REGEX = r"^[a-zA-Z0-9_]{1,15}$"
 
-
+class HandleProcessingException(commands.BadArgument):
+    def __init__(self, message):
+        super().__init__("There was an error processing the handle: " + message)
 
 class UserLimitReached(Exception):
-    ...
-    pass
-
-class HandleProcessingException(Exception):
-    ...
-    pass
+    def __init__(self):
+        super().__init__("Users limit reached")
 
 class InvalidHandle(HandleProcessingException):
-    ...
-    pass
+    def __init__(self):
+        super().__init__("Invalid handle")
 
 class HandleAlreadyExist(HandleProcessingException):
     def __init__(self, handle,user_id):
+        super().__init__('Handle already exists in database')
         self.handle = handle
         self.user_id = user_id
+
+class UserNotTracked(HandleProcessingException):
+    def __init__(self):
+        super().__init__("User is not currently tracked")
 
 
 def create_error_embed(user_message, excep):
