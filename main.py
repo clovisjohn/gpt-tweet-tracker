@@ -5,7 +5,8 @@ from discordbot import *
 client = DiscordBot(
     command_prefix='!',
     activity=discord.Game(name=f"!help"),
-    intents=intents)
+    intents=intents
+    )
     
     
 # Run the bot

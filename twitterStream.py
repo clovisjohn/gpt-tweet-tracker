@@ -1,16 +1,29 @@
-import openai
 import tweepy
 import tweepy.asynchronous
-import datetime
-import discord
 import traceback
 from globals_ import *
 
 
 async def check_tweet_for_match(tweet_text, question):
+    """
+    Checks if the tweet text contains the question
     
+    Parameters
+    ----------
+    tweet_text : str
+    The text of the tweet
     
-    # merge question and tweet text to make a prompt asking a question about the tweet
+    question : str
+    The question to check for
+    
+    Returns
+    -------
+    list[bool,str]
+    A list containing a boolean value indicating if the tweet text match the question and the gpt3 answer
+    
+    """
+
+    # Construct the query by combining the question and tweet text
     query = f"{question} \n\nTweet : {tweet_text} \n\nAnswer:"
       
     # Use OpenAI API to check tweet for match with question
@@ -26,6 +39,8 @@ async def check_tweet_for_match(tweet_text, question):
 
     # Extract answer from API response
     answer = response['choices'][0]['text'].strip().lower()
+
+    # Return a list indicating if "yes" is in the answer and the answer itself
     return ["yes" in answer, answer]
 
 
@@ -38,6 +53,15 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         self.cursor = cursor
     
     async def update_rules(self,rules):
+        """
+        Updates the rules of the twitter stream
+            
+        Parameters
+        ----------
+        rules : list[tweepy.StreamRule]
+        The rules to update
+        """
+        
         await self.delete_rules(rules)
         await self.add_rules(rules)
         
@@ -49,81 +73,123 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
 
 
     async def update_handles_from_database(self):
+        """
+        Updates the handles in the twitter stream to match the handles in the database
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        """
 
-        # delete existing rules
+
         rules = (await self.get_rules()).data
-        print(type(rules))
+        #print(type(rules))
         if rules is not None:
             await self.delete_rules(rules)
         
-        # get handles from database
+
         self.cursor.execute("SELECT handle FROM users")
         handles = self.cursor.fetchall()
         
-        #merge handles into twitter search query to track users corresponding to handles of 512 characters maximum and add these strings to a list.
+
         query = ""
         query_list = []
         for handle in handles:
+            # If the handle would cause the query to exceed 510 characters, add the current query to the list and reset the query
             if len(query) + len(handle[0]) > 510:
                 query_list.append(query)
                 query = ""
+                # If the number of queries exceeds the maximum number allowed by Twitter's API, raise an exception
                 if len(query_list) == 5:
                     raise UserLimitReached
 
             query += f'from:{handle[0]} OR '
         
-        #add last query to list
+        # Add the final query to the list
         query_list.append(query)
          
-        #add rules to twitter stream
+        # Add each query as a stream rule
         for query in query_list:
             query = query.rstrip(' OR ')
             temp_rule =  tweepy.StreamRule(query)
             await self.add_rules(temp_rule)
             
-        print((await self.get_rules()).data)
+        #print((await self.get_rules()).data)
              
              
 
          
          
     async def add_handle(self,handle):
+        """
+        Adds a handle to the twitter stream
         
-        #if there are no rules, add a new rule
+        Parameters
+        ----------
+        handle : str
+        The handle to add
+        
+        Returns
+        -------
+        None
+        """
+        
+
         rules = (await self.get_rules()).data
+
+        # If there are no current rules, create a new rule with the handle
         if rules is None or len(rules) == 0:
             temp_rule =  tweepy.StreamRule(f'from:{handle}')
             await self.add_rules(temp_rule)
-            print((await self.get_rules()).data)
+            #print((await self.get_rules()).data)
             return None
 
         for rule in rules:
-            #check if there is room to add a new handle
+            # If the handle can be added to the current rule without exceeding 510 characters, update the rule with the handle
             if len(rule.value) + len(handle) < 510:
                 new_query = rule.value + f' OR from:{handle}'
                 new_rule = tweepy.StreamRule(value=new_query,id=rule.id)
                 await self.update_rules(new_rule)
-                print((await self.get_rules()).data)
+                #print((await self.get_rules()).data)
                 return None
                
-        #if there is no room to add a new handle, check if there is room to add a new rule
+        # If the handle cannot be added to any of the current rules, create a new rule with the handle
         if len(rules) < 5:
                 temp_rule =  tweepy.StreamRule(f'from:{handle}')
                 await self.add_rules(temp_rule)
-                print((await self.get_rules()).data)
+                #print((await self.get_rules()).data)
                 return None
                 
-        #else, raise UserLimitReached
-        print((await self.get_rules()).data)
+        
+        #print((await self.get_rules()).data)
+        # If the number of queries exceeds the maximum number allowed by Twitter's API, raise an exception
         raise UserLimitReached
         
     
     
     async def remove_handle(self,handle):
-        #remove handle from all rules
+        """
+        Removes a handle from the twitter stream
+        
+        Parameters
+        ----------
+        handle : str
+        The handle to remove
+        
+        Returns
+        -------
+        None
+        """
+        
+        
         rules = (await self.get_rules()).data
-        print(type(rules))
+        #print(type(rules))
         for rule in rules:
+            # If the rule contains the handle, update the rule with the handle removed
             if f'from:{handle}' in rule.value:
                 await self.delete_rules(rule)
                 new_query = rule.value.replace(f'from:{handle} OR ','')
@@ -131,7 +197,7 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
                 new_query = new_query.rstrip(' OR ')
                 new_rule = tweepy.StreamRule(value=new_query,id=rule.id)
                 print(await self.add_rules(new_rule))
-                print((await self.get_rules()).data)
+                #print((await self.get_rules()).data)
                 return;
             
         
@@ -144,7 +210,7 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         username = user.username
         user_id = user.id
 
-        print(response)
+        #print(response)
         
         # Get question for tweet author from database
         self.cursor.execute('''SELECT question FROM users WHERE id=?''', (user_id,))
@@ -152,13 +218,12 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
 
         match = await check_tweet_for_match(tweet.text, question)
 
-        print(f"{tweet.text} {question} {str(match[0])} {match[1]}")   
+        #print(f"{tweet.text} {question} {str(match[0])} {match[1]}")   
 
+        # If the tweet text match the question, create and send an embed with the tweet and answer data
         if match[0]:
         
-            # If tweet matches question, send tweet in Discord channel
             await self.channel.send("New tweet")
-            # create dsicord embed of the tweet
             embed = discord.Embed(title=f"{user.name} (@{user.username})", url=f"https://twitter.com/{user.username}/status/{tweet.id}", description=tweet.text, color=0x1DA1F2, timestamp=tweet.created_at)
             embed.set_author(name="Tweet Match", url="https://twitter.com", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
             embed.set_thumbnail(url=user.profile_image_url)

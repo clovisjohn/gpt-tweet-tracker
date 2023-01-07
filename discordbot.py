@@ -1,8 +1,6 @@
-import discord
-import re
-from discord import app_commands
-from discord.ext import commands
 from globals_ import *
+import re
+from discord.ext import commands
 from twitterStream import *
 
 
@@ -12,8 +10,20 @@ intents.typing = False
 intents.presences = False
 
 def process_handles(handle):
-    # convert to lowercase, check if valid handle, get user id from handle, check if ID already exist in databse. raise custom error for each check. return handle and user id
-    handle = to_lower(handle)
+    """
+    Process a list of Twitter handles and return a list of valid handles.
+    
+    Parameters
+    ----------
+    handle : str
+    The handle to process
+    
+    Returns
+    -------
+    list[str,int]
+    """
+    
+    handle = handle.lower()
     if not re.match(TWITTER_HANDLE_REGEX, handle):
         raise InvalidHandle
     
@@ -24,8 +34,6 @@ def process_handles(handle):
         raise InvalidHandle
     
 
-    # check if ID already exist in databse. database is indexed by user id and contains users id and text
-    print(user.data.id)
     if handle_exist(user.data.id):
         raise HandleAlreadyExist(handle,user.data.id)
     
@@ -33,16 +41,36 @@ def process_handles(handle):
     
 
 def create_start_message():
+    """
+    Create a message to send to the user when they start the bot.
+    
+    Returns
+    -------
+    discord.Embed
+    """
+    
     embed = discord.Embed(title='Hello World!', description='The bot is now online and ready to serve you.', color=0x0000ff)
     embed.set_thumbnail(url='https://i.imgur.com/GyWdKAx.jpg')
-    embed.add_field(name='Commands', value='!help - Shows a list of available commands', inline=False)
+    embed.add_field(name='Commands', value='!help or /help - Shows a list of available commands', inline=False)
     return embed
-
-def to_lower(string):
-    return string.lower()
     
 async def load_database(stream,channel):
-    # Execute a COUNT statement to count the number of rows in the table
+    """
+    Load the database of Twitter handles being tracked by the bot.
+    
+    Parameters
+    ----------
+    stream : tweepy.Stream
+    The Twitter stream object.
+    
+    channel : discord.TextChannel
+    The channel to send the message to.
+    
+    Returns
+    -------
+    None
+    """
+    
     CURSOR.execute("SELECT COUNT(*) FROM users")
     count = CURSOR.fetchone()[0]
     if count > 0:
@@ -55,6 +83,7 @@ async def load_database(stream,channel):
 
 
 class Tracker(commands.Cog):
+
     def __init__(self, bot):
         self.bot = bot
         
@@ -74,7 +103,7 @@ class Tracker(commands.Cog):
     
         
     @commands.hybrid_command(description = "Remove a user from the database.")
-    async def remove_user(self,ctx, handle: to_lower):
+    async def remove_user(self,ctx, handle):
         
         try:
             handle, user_id = process_handles(handle)
@@ -135,18 +164,6 @@ class Tracker(commands.Cog):
 
         
         await ctx.send(embed=embed)
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 class DiscordBot(commands.Bot):
