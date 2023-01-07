@@ -28,6 +28,7 @@ cnx = sqlite3.connect('gpt_tweet_tracker.db')
 CURSOR = cnx.cursor()
 CURSOR.execute("CREATE TABLE IF NOT EXISTS users (handle TEXT, question TEXT)")
 
+TWITTER_HANDLE_REGEX = r"^[a-zA-Z0-9_]{1,15}$"
 
 class UserLimitReached(Exception):
     ...
