@@ -136,6 +136,7 @@ class Tracker(commands.Cog):
         description="Lists all the users being tracked and their respective questions "
     )
     async def list(self, ctx):
+        await ctx.defer()
         CURSOR.execute("SELECT * FROM users")
         users = CURSOR.fetchall()
         await ctx.send(f"Currently tracking {len(users)} users")
