@@ -177,16 +177,17 @@ class DiscordBot(commands.Bot):
             MY_GUILD = self.channel.guild
             self.tree.copy_global_to(guild=MY_GUILD)
             await self.tree.sync(guild=MY_GUILD)
+            await self.channel.send(embed=create_start_message())
             
         if self.stream is None:
             self.stream = MyStreamListener(self.channel,CURSOR)
             await load_database(self.stream,self.channel)
             
-        await self.channel.send(embed=create_start_message())
+        
 
     async def on_command_error(self, ctx, exception):
         print(exception)
-        await self.channel.send(embed=create_error_embed(exception))
+        await self.channel.send(embed=create_error_embed(ctx.message.content, exception))
 
 
         

@@ -57,8 +57,8 @@ class HandleAlreadyExist(HandleProcessingException):
         self.user_id = user_id
 
 
-def create_error_embed(excep):
-    embed = discord.Embed(title="Error", description="An error occurred. Please try again.", color=0xFF0000, timestamp=datetime.datetime.now())
+def create_error_embed(user_message, excep):
+    embed = discord.Embed(title="Error", description=f"An error occurred  when trying to process \n{user_message}.", color=0xFF0000, timestamp=datetime.datetime.now())
     embed.set_author(name="Tweet Match", url="https://twitter.com", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
     embed.add_field(name="Type", value=type(excep).__name__, inline=False)
     embed.add_field(name="Message", value=str(excep), inline=False)
