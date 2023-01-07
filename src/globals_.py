@@ -88,7 +88,7 @@ class UserNotTracked(HandleProcessingException):
         super().__init__("User is not currently tracked")
 
 
-def create_error_embed(user_message: str, excep: HandleAlreadyExist) -> discord.embeds.Embed:
+def create_error_embed(user_message: str, excep: Exception) -> discord.embeds.Embed:
     """
     Create an embed containing the error message and the user's message.
     """

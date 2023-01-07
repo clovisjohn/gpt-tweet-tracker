@@ -1,5 +1,5 @@
-from discordbot import *
-from globals_ import *
+from src.discordbot import *
+from src.globals_ import *
 
 
 client = DiscordBot(
