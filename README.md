@@ -43,3 +43,13 @@ A Discord bot that can track Twitter handles and notify you when they tweet a me
 !add_user - Add a new user to the database
 !help - Show help for the bot
 ```
+
+## Question to filter tweets
+
+The question should be a valid GPT-3 query in the [Prompt Format](https://beta.openai.com/docs/api-reference/completions/create#prompt-format) specified in the OpenAI API documentation. It should be a question that can be answered with Yes or No.
+
+Here are a few examples of prompts that you might use with this module:
+
+- `"Is this tweet relevant to my interests?"`: This prompt could be used to filter tweets based on relevance to a certain topic or theme.
+- `"Is this tweet appropriate for all audiences?"`: This prompt could be used to filter out tweets that might be inappropriate or offensive.
+- `"Does this tweet contain useful information?"`: This prompt could be used to filter out tweets that might be spam or low-quality content.
