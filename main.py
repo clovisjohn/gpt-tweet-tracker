@@ -7,5 +7,9 @@ client = DiscordBot(command_prefix='!',intents=intents)
 
 # Run the bot
 if __name__ == "__main__":
-    client.run(DISCORD_BOT_TOKEN)
+    try:
+        client.run(DISCORD_BOT_TOKEN)
+    except:
+        err_type, error, traceback = sys.exc_info()
+        client.channel.send(embed=create_error_embed(error))
 

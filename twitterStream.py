@@ -3,17 +3,8 @@ import tweepy
 import tweepy.asynchronous
 import datetime
 import discord
+import traceback
 from globals_ import *
-
-
-def create_error_embed(self,excep):
-    embed = discord.Embed(title="Error", description="An error occurred. Please try again.", color=0xFF0000)
-    embed.set_author(name="Tweet Match", url="https://twitter.com", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
-    embed.add_field(name="Type", value=type(excep).__name__, inline=False)
-    embed.add_field(name="Message", value=str(excep), inline=False)
-    embed = discord.Embed(timestamp=datetime.datetime.now())
-    embed.set_footer(text="Tweet Match", icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
-    return embed
 
 
 async def check_tweet_for_match(tweet, question):
@@ -174,7 +165,7 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
 
     async def on_connect(self):
         print("Connection to Twitter successful!")
-
+        
     async def on_connection_error(self):
         print("Connection to Twitter failed.")
 
@@ -183,3 +174,7 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
 
     async def on_errors(self, errors):
         print(errors)
+        
+    async def on_exception(self, exception):
+        print(''.join(traceback.format_exception(type(exception), value=exception, tb=exception.__traceback__)))
+        self.channel.send(embed=create_error_embed(exception))

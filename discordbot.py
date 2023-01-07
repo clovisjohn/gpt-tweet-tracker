@@ -103,13 +103,12 @@ class DiscordBot(commands.Bot):
         tracker = Tracker(self)
         tracker.stream = self.stream
         tracker.channel = self.channel
-        await self.add_cog(Tracker(self))
+        await self.add_cog(tracker)
         
         
 
     async def on_ready(self):
         print(f'{self.user} has connected to Discord!')
-        self.channel = self.get_channel(DISCORD_CHANNEL_ID)
         
         if self.channel is None:
             self.channel = self.get_channel(DISCORD_CHANNEL_ID)
