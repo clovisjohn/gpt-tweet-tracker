@@ -1,7 +1,6 @@
 import re
+from typing import Tuple
 
-from discord.channel import TextChannel
-from discord.embeds import Embed
 from discord.ext import commands
 from discord.ext.commands.context import Context
 from globals_ import *
@@ -14,7 +13,7 @@ intents.typing = False
 intents.presences = False
 
 
-def process_handles(handle: str) -> tuple[str, int]:
+def process_handles(handle: str) -> Tuple[str, int]:
     """
     Process a list of Twitter handles and return a list of valid handles.
 
@@ -43,16 +42,16 @@ def process_handles(handle: str) -> tuple[str, int]:
     return handle, user.data.id
 
 
-def create_start_message() -> Embed:
+def create_start_message() -> discord.embeds.Embed:
     """
     Create a message to send to the user when they start the bot.
 
     Returns
     -------
-    discord.Embed
+    discord.embeds.Embed
     """
 
-    embed = discord.Embed(
+    embed = discord.embeds.Embed(
         title="Hello World!",
         description="The bot is now online and ready to serve you.",
         color=0x0000FF,
@@ -66,7 +65,7 @@ def create_start_message() -> Embed:
     return embed
 
 
-async def load_database(stream: MyStreamListener, channel: TextChannel) -> None:
+async def load_database(stream: MyStreamListener, channel: discord.channel.TextChannel) -> None:
     """
     Load the database of Twitter handles being tracked by the bot.
 
@@ -75,7 +74,7 @@ async def load_database(stream: MyStreamListener, channel: TextChannel) -> None:
     stream : tweepy.Stream
     The Twitter stream object.
 
-    channel : discord.TextChannel
+    channel : discord.channel.TextChannel
     The channel to send the message to.
 
     Returns
@@ -167,7 +166,7 @@ class Tracker(commands.Cog):
     @commands.hybrid_command(name="help", description="Show help for the bot")
     async def help(self, ctx):
         # Print list of commands in Discord channel
-        embed = discord.Embed(
+        embed = discord.embeds.Embed(
             title="Commands", description="List of available commands", color=0x0000FF
         )
         embed.set_thumbnail(url="https://i.imgur.com/GyWdKAx.jpg")

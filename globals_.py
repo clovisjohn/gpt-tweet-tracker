@@ -6,7 +6,6 @@ import discord
 import dotenv
 import openai
 import tweepy.asynchronous
-from discord.embeds import Embed
 from discord.ext import commands
 
 # Load environment variables from a .env file
@@ -89,11 +88,11 @@ class UserNotTracked(HandleProcessingException):
         super().__init__("User is not currently tracked")
 
 
-def create_error_embed(user_message: str, excep: HandleAlreadyExist) -> Embed:
+def create_error_embed(user_message: str, excep: HandleAlreadyExist) -> discord.embeds.Embed:
     """
     Create an embed containing the error message and the user's message.
     """
-    embed = discord.Embed(
+    embed = discord.embeds.Embed(
         title="Error",
         description=f"An error occurred  when trying to process \n{user_message}.",
         color=0xFF0000,

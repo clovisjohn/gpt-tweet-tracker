@@ -1,16 +1,14 @@
 import traceback
 from sqlite3 import Cursor
+from typing import List,Union
 
 import tweepy
 import tweepy.asynchronous
-from discord.channel import TextChannel
 from globals_ import *
 from tweepy.streaming import StreamResponse
 
 
-async def check_tweet_for_match(
-    tweet_text: str, question: str
-) -> list[bool, str]:
+async def check_tweet_for_match(tweet_text: str, question: str) -> List[Union[bool, str]]:
     """
     Checks if the tweet text contains the question
 
@@ -51,7 +49,7 @@ async def check_tweet_for_match(
 
 
 class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
-    def __init__(self, channel: TextChannel, cursor: Cursor, **kwargs) -> None:
+    def __init__(self, channel: discord.channel.TextChannel, cursor: Cursor, **kwargs) -> None:
         super().__init__(
             bearer_token=TWITTER_BEARER_TOKEN, wait_on_rate_limit=True, **kwargs
         )
@@ -213,7 +211,7 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         if match[0]:
 
             await self.channel.send("New tweet")
-            embed = discord.Embed(
+            embed = discord.embeds.Embed(
                 title=f"{user.name} (@{user.username})",
                 url=f"https://twitter.com/{user.username}/status/{tweet.id}",
                 description=tweet.text,
