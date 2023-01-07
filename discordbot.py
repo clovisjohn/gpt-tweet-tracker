@@ -35,7 +35,7 @@ def process_handles(handle):
 def create_start_message():
     embed = discord.Embed(title='Hello World!', description='The bot is now online and ready to serve you.', color=0x0000ff)
     embed.set_thumbnail(url='https://i.imgur.com/GyWdKAx.jpg')
-    embed.add_field(name='Commands', value='!help or /help - Shows a list of available commands', inline=False)
+    embed.add_field(name='Commands', value='!help - Shows a list of available commands', inline=False)
     return embed
 
 def to_lower(string):
@@ -58,12 +58,12 @@ class Tracker(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         
-    @commands.hybrid_command()
+    @commands.hybrid_command(description = "Add a new user to the database")
     async def add_user(self,ctx, handle: str, question: str):
         
         try:
             handle, user_id = process_handles(handle)
-        
+
         except InvalidHandle:
             await ctx.send("Invalid handle")
             return;
@@ -84,7 +84,7 @@ class Tracker(commands.Cog):
             await ctx.send("Users limit reached")
     
         
-    @commands.hybrid_command()
+    @commands.hybrid_command(description = "Remove a user from the database.")
     async def remove_user(self,ctx, handle: to_lower):
         
         try:
@@ -106,9 +106,9 @@ class Tracker(commands.Cog):
         else:
             await ctx.send(f"User is not currently tracked")
             return
-
-
-    @commands.hybrid_command()
+    
+   
+    @commands.hybrid_command(description = "Lists all the users being tracked and their respective questions ")
     async def list(self,ctx):
         CURSOR.execute("SELECT * FROM users")
         users = CURSOR.fetchall()
@@ -127,7 +127,7 @@ class Tracker(commands.Cog):
         await ctx.send(msg)
 
 
-    @commands.hybrid_command()
+    @commands.hybrid_command(description = "Start the bot")
     async def start(self,ctx):
         # Start the bot
         await ctx.send('Starting bot')
@@ -135,11 +135,24 @@ class Tracker(commands.Cog):
         await load_database(self.bot.stream,self.bot.channel)
     
     
-    @commands.hybrid_command()
+    @commands.hybrid_command(description = "Stop the bot")
     async def stop(self,ctx):
         # Stop the bot
         await ctx.send('Stopping bot')
         self.bot.stream.disconnect()
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class DiscordBot(commands.Bot):
@@ -170,5 +183,10 @@ class DiscordBot(commands.Bot):
             await load_database(self.stream,self.channel)
             
         await self.channel.send(embed=create_start_message())
+
+    async def on_command_error(self, ctx, exception):
+        print(exception)
+        await self.channel.send(embed=create_error_embed(exception))
+
 
         
