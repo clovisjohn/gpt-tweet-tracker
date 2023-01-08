@@ -13,10 +13,10 @@ A Discord bot that can track Twitter handles and notify you when they tweet a me
 ## Setup
 
 1. Clone the repository and install the required packages:
-	```
-	git clone https://github.com/YOUR_USERNAME/Discord-Tweet-Match
-	pip install -r requirements.txt
-	```
+```
+git clone https://github.com/YOUR_USERNAME/Discord-Tweet-Match
+pip install -r requirements.txt
+```
 
 	
 2. Create a `.env` file in the root directory of the project and add the following variables:
@@ -30,9 +30,9 @@ A Discord bot that can track Twitter handles and notify you when they tweet a me
 	
 	
 3. Run the bot:
-	```
-	python main.py
-	```
+```
+python main.py
+```
 
 ## Commands
 ```
