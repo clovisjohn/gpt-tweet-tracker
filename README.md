@@ -1,6 +1,6 @@
 # gpt-tweet-tracker
 
-A Discord bot that can track Twitter handles and notify you when they tweet a message that matches a specified question.
+A Discord bot that can track Twitter handles and notify you when they tweet a message that matches a specified question. text-davinci-003 is used to filter tweets.
 
 ## Requirements
 
