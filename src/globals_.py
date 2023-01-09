@@ -40,7 +40,13 @@ TWITTER_CLIENT = tweepy.Client(bearer_token=TWITTER_BEARER_TOKEN)
 # Regular expression for validating Twitter handles. A Twitter
 TWITTER_HANDLE_REGEX = r"^[a-zA-Z0-9_]{1,15}$"
 
-
+GPT_QUERY_BASE = """Using the following text, answer the following question with Yes or No and provide an explanation
+Text:
+\"""
+{tweet}
+\"""
+Question: {question}
+Answer: """
 class HandleProcessingException(commands.BadArgument):
     """
     Custom exception class for handling errors that occur when processing Twitter handles.

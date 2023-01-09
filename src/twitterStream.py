@@ -28,7 +28,7 @@ async def check_tweet_for_match(tweet_text: str, question: str) -> List[Union[bo
     """
 
     # Construct the query by combining the question and tweet text
-    query = f"{question} \n\nTweet : {tweet_text} \n\nAnswer:"
+    query = GPT_QUERY_BASE.format(tweet=tweet_text, question=question)
 
     # Use OpenAI API to check tweet for match with question
     response = openai.Completion.create(
