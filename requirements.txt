@@ -1,0 +1,8 @@
+aiohttp==3.8.3
+async-lru==1.0.3
+oauthlib==3.2.2
+DateTime==4.8
+discord==2.1.0
+openai==0.25.0
+python-dotenv==0.21.0
+tweepy==4.12.1
