@@ -14,7 +14,7 @@ A Discord bot that can track Twitter handles and notify you when they tweet a me
 
 1. Clone the repository and install the required packages:
 ```
-git clone https://github.com/YOUR_USERNAME/Discord-Tweet-Match
+git clone https://github.com/clovisjohn/gpt-tweet-tracker
 pip install -r requirements.txt
 ```
 
