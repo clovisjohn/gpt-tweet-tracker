@@ -198,20 +198,26 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
     async def send_tweet_discord(self, user : dict, tweet : dict, question: str, match:List) -> None:
         """
         Sends a tweet to discord
-
+        
         Parameters
         ----------
         user : dict
         The user who sent the tweet
-
+        
         tweet : dict
         The tweet to send
+        
+        question : str
+        The question to check the tweet against
+        
+        match : list[bool,str]
+        A list containing a boolean value indicating if the tweet text match the question and the gpt3 answer
 
         Returns
         -------
         None
         """
-        
+  
         await self.channel.send("New tweet")
         embed = discord.embeds.Embed(
             title=f"{user.name} (@{user.username})",
