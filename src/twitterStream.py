@@ -1,3 +1,5 @@
+from pickle import LIST
+import string
 import traceback
 from sqlite3 import Cursor
 from typing import List,Union
@@ -192,7 +194,54 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
                 print(await self.add_rules(new_rule))
                 # print((await self.get_rules()).data)
                 return
+            
+    async def send_tweet_discord(self, user : dict, tweet : dict, question: str, match:List) -> None:
+        """
+        Sends a tweet to discord
 
+        Parameters
+        ----------
+        user : dict
+        The user who sent the tweet
+
+        tweet : dict
+        The tweet to send
+
+        Returns
+        -------
+        None
+        """
+        
+        await self.channel.send("New tweet")
+        embed = discord.embeds.Embed(
+            title=f"{user.name} (@{user.username})",
+            url=f"https://twitter.com/{user.username}/status/{tweet.id}",
+            description=tweet.text,
+            color=0x1DA1F2,
+            timestamp=tweet.created_at,
+        )
+        embed.set_author(
+            name="Tweet Match",
+            url="https://twitter.com",
+            icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png",
+        )
+        embed.set_thumbnail(url=user.profile_image_url)
+        embed.add_field(name="Question", value=question, inline=False)
+        embed.add_field(name="Answer", value=match[1], inline=False)
+        embed.add_field(name="Match", value=match[0], inline=False)
+        embed.timestamp = tweet.created_at
+        embed.set_footer(
+            text="Tweet Match",
+            icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png",
+        )
+        await self.channel.send(embed=embed)
+
+        
+        
+
+
+
+        
     async def on_response(self, response: StreamResponse) -> None:
         tweet = response.data
         user = response.includes["users"][0]
@@ -207,32 +256,10 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
 
         # print(f"{tweet.text} {question} {str(match[0])} {match[1]}")
 
-        # If the tweet text match the question, create and send an embed with the tweet and answer data
+        # If the tweet text match the question, send the tweet to discord
         if match[0]:
-
-            await self.channel.send("New tweet")
-            embed = discord.embeds.Embed(
-                title=f"{user.name} (@{user.username})",
-                url=f"https://twitter.com/{user.username}/status/{tweet.id}",
-                description=tweet.text,
-                color=0x1DA1F2,
-                timestamp=tweet.created_at,
-            )
-            embed.set_author(
-                name="Tweet Match",
-                url="https://twitter.com",
-                icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png",
-            )
-            embed.set_thumbnail(url=user.profile_image_url)
-            embed.add_field(name="Question", value=question, inline=False)
-            embed.add_field(name="Answer", value=match[1], inline=False)
-            embed.add_field(name="Match", value=match[0], inline=False)
-            embed.timestamp = tweet.created_at
-            embed.set_footer(
-                text="Tweet Match",
-                icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png",
-            )
-            await self.channel.send(embed=embed)
+            await self.send_tweet_discord(user, tweet,question, match)
+            # print("Match found " + tweet)
 
     async def on_connect(self) -> None:
         print("Connection to Twitter successful!")
