@@ -195,7 +195,7 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
                 # print((await self.get_rules()).data)
                 return
             
-    async def send_tweet_discord(self, user : dict, tweet : dict, question: str, match:List) -> None:
+    async def send_tweet_discord(self, user : dict, tweet : dict, question: str, match: List) -> None:
         """
         Sends a tweet to discord
         
@@ -241,12 +241,6 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
             icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png",
         )
         await self.channel.send(embed=embed)
-
-        
-        
-
-
-
         
     async def on_response(self, response: StreamResponse) -> None:
         tweet = response.data
@@ -277,7 +271,7 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         print("Disconnected from Twitter.")
 
     async def on_errors(self, errors):
-        print(errors)
+        print("error: " + errors)
 
     async def on_exception(self, exception):
         print(
@@ -288,3 +282,9 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
             )
         )
         await self.channel.send(embed=create_error_embed(exception))
+        
+    async def on_keep_alive(self):
+        print("Stream is alive")
+            
+    async def on_closed(self, resp):
+        print(resp)

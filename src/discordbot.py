@@ -90,6 +90,8 @@ async def load_database(stream: MyStreamListener, channel: discord.channel.TextC
             stream.custom_filter()
         except UserLimitReached:
             await channel.send("Users limit reached")
+            
+    stream.custom_filter()
 
 
 class Tracker(commands.Cog):
@@ -101,9 +103,7 @@ class Tracker(commands.Cog):
 
         await ctx.defer()
         handle, user_id = process_handles(handle)
-
         await self.bot.stream.add_handle(handle)
-        self.bot.stream.custom_filter()
 
         # Add handle to the database
         CURSOR.execute(
@@ -123,7 +123,7 @@ class Tracker(commands.Cog):
         except HandleAlreadyExist as e:
             handle, user_id = e.handle, e.user_id
             await self.bot.stream.remove_handle(handle)
-            self.bot.stream.custom_filter()
+
             # Remove handle from the database
             CURSOR.execute("DELETE FROM users WHERE id = ?", (user_id,))
             cnx.commit()
