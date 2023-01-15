@@ -40,6 +40,9 @@ TWITTER_CLIENT = tweepy.Client(bearer_token=TWITTER_BEARER_TOKEN)
 # Regular expression for validating Twitter handles. A Twitter
 TWITTER_HANDLE_REGEX = r"^[a-zA-Z0-9_]{1,15}$"
 
+# Max discord message length
+MAX_MESSAGE_LENGTH = 2000
+
 GPT_QUERY_BASE = """Using the following text, answer the following question with Yes or No and provide an explanation
 Text:
 \"""
@@ -93,6 +96,14 @@ class UserNotTracked(HandleProcessingException):
     def __init__(self):
         super().__init__("User is not currently tracked")
 
+class InvalidList(Exception):
+    """
+    Exception raised when a Twitter list id is invalid.
+    """
+
+    def __init__(self):
+        super().__init__("Invalid list Id")
+
 
 def create_error_embed(user_message: str, excep: Exception) -> discord.embeds.Embed:
     """
@@ -109,7 +120,13 @@ def create_error_embed(user_message: str, excep: Exception) -> discord.embeds.Em
         url="https://twitter.com",
         icon_url="https://abs.twimg.com/icons/apple-touch-icon-192x192.png",
     )
-    embed.add_field(name="Type", value=type(excep).__name__, inline=False)
+
+    if isinstance(excep, discord.ext.commands.errors.CommandInvokeError):
+        error_type = type(excep.original).__name__
+    else:
+        error_type = type(excep).__name__
+
+    embed.add_field(name="Type", value=error_type, inline=False)
     embed.add_field(name="Message", value=str(excep), inline=False)
     return embed
 
@@ -121,3 +138,6 @@ def handle_exist(userID: int) -> bool:
     CURSOR.execute("SELECT COUNT(*) FROM users WHERE id = ?", (userID,))
     count = CURSOR.fetchone()[0]
     return count > 0
+
+
+            

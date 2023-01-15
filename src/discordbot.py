@@ -86,7 +86,10 @@ async def load_database(stream: MyStreamListener, channel: discord.channel.TextC
     count = CURSOR.fetchone()[0]
     if count > 0:
         try:
-            await stream.update_handles_from_database()
+            CURSOR.execute("SELECT handle FROM users")
+            handles = [handle[0] for handle in CURSOR.fetchall()]
+            print("load " + str(len(handles)))
+            await stream.load_handles_from_list(handles)
             stream.custom_filter()
         except UserLimitReached:
             await channel.send("Users limit reached")
@@ -113,6 +116,50 @@ class Tracker(commands.Cog):
         cnx.commit()
         await ctx.send(f"Tracking {handle} for question: {question}")
 
+    @commands.hybrid_command(description="Add users from a twitter list to the database")
+    async def bulk_add(self,ctx,list_id : str, question: str):
+        await ctx.defer()
+        # check if twitter list is vallid
+        try:
+            twitter_list = TWITTER_CLIENT.get_list(id=list_id)
+        except tweepy.errors.BadRequest:
+            raise InvalidList
+        
+        if twitter_list.data is None:
+            raise InvalidList
+        
+        # get list members
+        members = tweepy.Paginator(TWITTER_CLIENT.get_list_members, id=list_id).flatten()
+        
+        valid_members=[]
+        for member in members:
+            # Check if some users are not already in the database
+            if not handle_exist(member.id):
+                valid_members.append(member)
+        
+        
+        if(len(valid_members)==0):
+            await ctx.send("All users are already in the database")
+            return
+        
+        CURSOR.execute("SELECT handle FROM users")
+        handles = CURSOR.fetchall()
+
+        handles.extend([m.username for m in valid_members])
+        print("add " + str(len(handles)))
+        await self.bot.stream.load_handles_from_list(handles)
+        
+        # Add handles to the database
+        for member in valid_members:
+            CURSOR.execute(
+                "INSERT INTO users (id, handle, question) VALUES (?, ?, ?)",
+                (member.id, member.username, question),
+            )
+            cnx.commit()
+            
+        await ctx.send(f"Tracking {len(valid_members)} users for question: {question}")
+        
+        
     @commands.hybrid_command(description="Remove a user from the database.")
     async def remove_user(self, ctx, handle):
 
@@ -145,13 +192,21 @@ class Tracker(commands.Cog):
             return
 
         # Print list of handles and questions in Discord channel
+        msg_list=[]
         msg = ""
         for user in users:
             handle = user[1]
             question = user[2]
+            if len(msg) + len(f"{handle}: {question}\n") >= MAX_MESSAGE_LENGTH:
+                msg_list.append(msg)
+                msg=""
             msg += f"{handle}: {question}\n"
+            
+        msg_list.append(msg)
+        for msg in msg_list:
+            await ctx.send(msg)
 
-        await ctx.send(msg)
+        
 
     @commands.hybrid_command(description="Start the bot")
     async def start(self, ctx):

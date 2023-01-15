@@ -79,27 +79,22 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
             user_fields=["username", "name", "profile_image_url"],
         )
 
-    async def update_handles_from_database(self) -> None:
+    async def load_handles_from_list(self, handles : LIST) -> None:
         """
         Updates the handles in the twitter stream to match the handles in the database
 
         Parameters
         ----------
-        None
+        handles : List[str]
+        The handles to add
 
         Returns
         -------
         None
         """
-
-        rules = (await self.get_rules()).data
+        
         # print(type(rules))
-        if rules is not None:
-            await self.delete_rules(rules)
-
-        self.cursor.execute("SELECT handle FROM users")
-        handles = self.cursor.fetchall()
-
+            
         query = ""
         query_list = []
         for handle in handles:
@@ -111,11 +106,15 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
                 if len(query_list) == 5:
                     raise UserLimitReached
 
-            query += f"from:{handle[0]} OR "
+            query += f"from:{handle} OR "
 
         # Add the final query to the list
         query_list.append(query)
 
+        rules = (await self.get_rules()).data
+        if rules is not None:
+            await self.delete_rules(rules)
+        
         # Add each query as a stream rule
         for query in query_list:
             query = query.rstrip(" OR ")
@@ -166,7 +165,29 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         # print((await self.get_rules()).data)
         # If the number of queries exceeds the maximum number allowed by Twitter's API, raise an exception
         raise UserLimitReached
+    
+    
+    #async def bulk_add_from_list(self, members : LIST) -> None:
+    #    """
+    #    Adds a list of members to the twitter stream
 
+    #    Parameters
+    #    ----------
+    #    members : List[str]
+    #    The members to add
+
+    #    Returns
+    #    -------
+    #    None
+    #    """
+
+    #    self.cursor.execute("SELECT handle FROM users")
+    #    handles = self.cursor.fetchall()
+
+    #    handles.extend(members)
+    #    await self.load_handles_from_list(handles)
+
+        
     async def remove_handle(self, handle: str) -> None:
         """
         Removes a handle from the twitter stream
@@ -259,19 +280,24 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         # If the tweet text match the question, send the tweet to discord
         if match[0]:
             await self.send_tweet_discord(user, tweet,question, match)
+            await super().on_response()
             # print("Match found " + tweet)
 
     async def on_connect(self) -> None:
         print("Connection to Twitter successful!")
+        await super().on_connect()
 
     async def on_connection_error(self):
         print("Connection to Twitter failed.")
+        await super().on_connection_error()
 
     async def on_disconnect(self) -> None:
         print("Disconnected from Twitter.")
+        await super().on_disconnect()
 
     async def on_errors(self, errors):
         print("error: " + errors)
+        await super().on_errors()
 
     async def on_exception(self, exception):
         print(
@@ -282,9 +308,13 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
             )
         )
         await self.channel.send(embed=create_error_embed(exception))
+        await super().on_exception()
         
     async def on_keep_alive(self):
         print("Stream is alive")
+        await super().on_keep_alive()
             
     async def on_closed(self, resp):
         print(resp)
+        await super().on_closed()
+        

@@ -41,6 +41,7 @@ python main.py
 !list - Lists all the users being tracked and their respective questions
 !remove_user - Remove a user from the database.
 !add_user - Add a new user to the database
+!bulk_add - Add users from a twitter list to the database
 !help - Show help for the bot
 ```
 
