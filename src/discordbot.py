@@ -3,8 +3,10 @@ from typing import Tuple
 
 from discord.ext import commands
 from discord.ext.commands.context import Context
-from globals_ import *
-from twitterStream import *
+from .globals_ import CURSOR, cnx, TWITTER_CLIENT, TWITTER_HANDLE_REGEX, MAX_MESSAGE_LENGTH, DISCORD_CHANNEL_ID, handle_exist, InvalidHandle, HandleAlreadyExist, UserLimitReached, InvalidList, UserNotTracked
+from .twitterStream import *
+
+from . import discord_logger
 
 
 intents = discord.Intents.default()
@@ -88,7 +90,6 @@ async def load_database(stream: MyStreamListener, channel: discord.channel.TextC
         try:
             CURSOR.execute("SELECT handle FROM users")
             handles = [handle[0] for handle in CURSOR.fetchall()]
-            print("load " + str(len(handles)))
             await stream.load_handles_from_list(handles)
             stream.custom_filter()
         except UserLimitReached:
@@ -146,7 +147,6 @@ class Tracker(commands.Cog):
         handles = CURSOR.fetchall()
 
         handles.extend([m.username for m in valid_members])
-        print("add " + str(len(handles)))
         await self.bot.stream.load_handles_from_list(handles)
         
         # Add handles to the database
@@ -247,7 +247,8 @@ class DiscordBot(commands.Bot):
         await self.add_cog(tracker)
 
     async def on_ready(self) -> None:
-        print(f"{self.user} has connected to Discord!")
+        #print(f"{self.user} has connected to Discord!")
+        discord_logger.info(f"{self.user} has connected to Discord!")
 
         if self.channel is None:
             self.channel = self.get_channel(DISCORD_CHANNEL_ID)
@@ -261,7 +262,8 @@ class DiscordBot(commands.Bot):
             await load_database(self.stream, self.channel)
 
     async def on_command_error(self, ctx: Context, exception: Exception) -> None:
-        print(exception)
+        #print(exception)
+        discord_logger.exception(exception)
         await self.channel.send(
             embed=create_error_embed(ctx.message.content, exception)
         )

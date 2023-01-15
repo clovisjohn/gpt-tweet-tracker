@@ -6,9 +6,10 @@ from typing import List,Union
 
 import tweepy
 import tweepy.asynchronous
-from globals_ import *
+from .globals_ import GPT_QUERY_BASE, openai, discord, TWITTER_BEARER_TOKEN, UserLimitReached, create_error_embed
 from tweepy.streaming import StreamResponse
 
+from . import tweepy_logger
 
 async def check_tweet_for_match(tweet_text: str, question: str) -> List[Union[bool, str]]:
     """
@@ -282,39 +283,18 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
             await self.send_tweet_discord(user, tweet,question, match)
             await super().on_response()
             # print("Match found " + tweet)
-
-    async def on_connect(self) -> None:
-        print("Connection to Twitter successful!")
-        await super().on_connect()
-
-    async def on_connection_error(self):
-        print("Connection to Twitter failed.")
-        await super().on_connection_error()
-
-    async def on_disconnect(self) -> None:
-        print("Disconnected from Twitter.")
-        await super().on_disconnect()
-
-    async def on_errors(self, errors):
-        print("error: " + errors)
-        await super().on_errors()
+            tweepy_logger.info(f"Tweet match: {tweet.text} {question} {str(match[0])} {match[1]}")
 
     async def on_exception(self, exception):
-        print(
-            "".join(
-                traceback.format_exception(
-                    type(exception), value=exception, tb=exception.__traceback__
-                )
-            )
-        )
-        await self.channel.send(embed=create_error_embed(exception))
         await super().on_exception()
+        #tweepy_logger.error(
+        #    "".join(
+        #        traceback.format_exception(
+        #            type(exception), value=exception, tb=exception.__traceback__
+        #        )
+        #    )
+        #)
+        await self.channel.send(embed=create_error_embed(exception))
         
-    async def on_keep_alive(self):
-        print("Stream is alive")
-        await super().on_keep_alive()
-            
-    async def on_closed(self, resp):
-        print(resp)
-        await super().on_closed()
+        
         

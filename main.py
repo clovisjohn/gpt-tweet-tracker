@@ -1,5 +1,5 @@
 from src.discordbot import *
-from src.globals_ import *
+from src.globals_ import DISCORD_BOT_TOKEN
 
 
 client = DiscordBot(
