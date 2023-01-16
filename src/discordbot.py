@@ -243,14 +243,7 @@ class Tracker(commands.Cog):
             cnx.commit()
 
         await ctx.send(f"Stopped tracking {len(valid_members)} users")
-
-
-
-
-
-
-        
-        
+      
     @commands.hybrid_command(
         description="Lists all the users being tracked and their respective questions "
     )

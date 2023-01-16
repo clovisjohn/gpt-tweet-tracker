@@ -166,27 +166,6 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         # print((await self.get_rules()).data)
         # If the number of queries exceeds the maximum number allowed by Twitter's API, raise an exception
         raise UserLimitReached
-    
-    
-    #async def bulk_add_from_list(self, members : LIST) -> None:
-    #    """
-    #    Adds a list of members to the twitter stream
-
-    #    Parameters
-    #    ----------
-    #    members : List[str]
-    #    The members to add
-
-    #    Returns
-    #    -------
-    #    None
-    #    """
-
-    #    self.cursor.execute("SELECT handle FROM users")
-    #    handles = self.cursor.fetchall()
-
-    #    handles.extend(members)
-    #    await self.load_handles_from_list(handles)
 
         
     async def remove_handle(self, handle: str) -> None:
@@ -295,6 +274,27 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         #    )
         #)
         await self.channel.send(embed=create_error_embed(exception))
+
+        
+    async def on_disconnect(self):
+        await super().on_disconnect()
+        await self.channel.send("Disconnected from Twitter")
+        self.cursor.execute("SELECT COUNT(*) FROM users")
+        count = self.cursor.fetchone()[0]
+        if count > 0:   
+            self.cursor.execute("SELECT handle FROM users")
+            handles = [handle[0] for handle in self.cursor.fetchall()]
+            await self.load_handles_from_list(handles)
+            self.custom_filter()
+        
+        
+    async def on_connect(self):
+        await super().on_connect()
+        await self.channel.send("Connected to Twitter")
+
+        
+        
+
         
         
         
