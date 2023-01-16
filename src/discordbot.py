@@ -1,5 +1,5 @@
 import re
-from typing import Tuple
+from typing import Tuple, List, Dict
 
 from discord.ext import commands
 from discord.ext.commands.context import Context
@@ -27,6 +27,16 @@ def process_handles(handle: str) -> Tuple[str, int]:
     Returns
     -------
     tuple[str,int]
+    A tuple containing the handle and the id of a user.
+
+    Raises
+    ------
+    InvalidHandle
+    If the handle is invalid
+    
+    HandleAlreadyExist
+    If the handle already exists in the database
+
     """
 
     handle = handle.lower()
@@ -42,6 +52,39 @@ def process_handles(handle: str) -> Tuple[str, int]:
         raise HandleAlreadyExist(handle, user.data.id)
 
     return handle, user.data.id
+
+def process_twitter_list( list_id : str ) -> List[Dict] :
+    """
+    Process a Twitter list and return a list of valid handles.
+    
+    Parameters
+    ----------
+    list_id : str
+    The ID of the list to process
+    
+    Returns
+    -------
+    list[dict]
+    A list of users
+    
+    Raises
+    ------
+    InvalidList
+    If the list id is invalid
+    """
+    
+    # check if twitter list is vallid
+    try:
+        twitter_list = TWITTER_CLIENT.get_list(id=list_id)
+    except tweepy.errors.BadRequest:
+        raise InvalidList
+        
+    if twitter_list.data is None:
+        raise InvalidList
+        
+    # get list members
+    members = tweepy.Paginator(TWITTER_CLIENT.get_list_members, id=list_id).flatten()
+    return [m for m in members]
 
 
 def create_start_message() -> discord.embeds.Embed:
@@ -120,18 +163,8 @@ class Tracker(commands.Cog):
     @commands.hybrid_command(description="Add users from a twitter list to the database")
     async def bulk_add(self,ctx,list_id : str, question: str):
         await ctx.defer()
-        # check if twitter list is vallid
-        try:
-            twitter_list = TWITTER_CLIENT.get_list(id=list_id)
-        except tweepy.errors.BadRequest:
-            raise InvalidList
         
-        if twitter_list.data is None:
-            raise InvalidList
-        
-        # get list members
-        members = tweepy.Paginator(TWITTER_CLIENT.get_list_members, id=list_id).flatten()
-        
+        members = process_twitter_list(list_id)
         valid_members=[]
         for member in members:
             # Check if some users are not already in the database
@@ -179,6 +212,45 @@ class Tracker(commands.Cog):
         else:
             raise UserNotTracked
 
+
+        
+    @commands.hybrid_command(description="Remove all users from a twitter list from the database")
+    async def bulk_remove(self,ctx,list_id : str):
+        await ctx.defer()
+        
+        members = process_twitter_list(list_id)
+        valid_members=[]
+        for member in members:
+            # Filter users who are not in the database
+            if handle_exist(member.id):
+                valid_members.append(member)
+        
+        
+        if(len(valid_members)==0):
+            await ctx.send("No users from this list is in the database")
+            return
+        
+        CURSOR.execute("SELECT handle FROM users")
+        handles = CURSOR.fetchall()
+
+        valid_handles = [m.username for m in valid_members]
+        updated_list = [handle for handle in handles if handle not in valid_handles]
+        await self.bot.stream.load_handles_from_list(updated_list)
+        
+        # Add handles to the database
+        for member in valid_members:
+            CURSOR.execute("DELETE FROM users WHERE id = ?", (member.id,))
+            cnx.commit()
+
+        await ctx.send(f"Stopped tracking {len(valid_members)} users")
+
+
+
+
+
+
+        
+        
     @commands.hybrid_command(
         description="Lists all the users being tracked and their respective questions "
     )

@@ -42,6 +42,7 @@ python main.py
 !remove_user - Remove a user from the database.
 !add_user - Add a new user to the database
 !bulk_add - Add users from a twitter list to the database
+!bulk_remove - Remove users from a twitter list from the database
 !help - Show help for the bot
 ```
 
