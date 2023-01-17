@@ -244,6 +244,9 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         await self.channel.send(embed=embed)
         
     async def on_response(self, response: StreamResponse) -> None:
+
+        await super().on_response(response)
+        
         tweet = response.data
         user = response.includes["users"][0]
 
@@ -284,6 +287,7 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         if count > 0:   
             self.cursor.execute("SELECT handle FROM users")
             handles = [handle[0] for handle in self.cursor.fetchall()]
+            tweepy_logger.info(f"Handles amount is: {len(handles)} " )
             await self.load_handles_from_list(handles)
             self.custom_filter()
         
