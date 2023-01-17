@@ -260,7 +260,7 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         # If the tweet text match the question, send the tweet to discord
         if match[0]:
             await self.send_tweet_discord(user, tweet,question, match)
-            await super().on_response()
+            await super().on_response(response)
             # print("Match found " + tweet)
             tweepy_logger.info(f"Tweet match: {tweet.text} {question} {str(match[0])} {match[1]}")
 
