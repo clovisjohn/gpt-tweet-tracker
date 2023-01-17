@@ -284,6 +284,7 @@ class MyStreamListener(tweepy.asynchronous.AsyncStreamingClient):
         if count > 0:   
             self.cursor.execute("SELECT handle FROM users")
             handles = [handle[0] for handle in self.cursor.fetchall()]
+            tweepy_logger.info(f"Handles amount is: {len(handles)} " )
             await self.load_handles_from_list(handles)
             self.custom_filter()
         
